@@ -172,6 +172,7 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
     }	
     var response = "<HEAD>" +
     "<title>Cognitive TV Vodafone Dummy Agent</title>\n" +
+    "<meta charset=\"utf-8\"/>" + 
     "<link rel=\"stylesheet\" href=\"css/app.css\">\n " +
     "</HEAD>\n" +
     "<BODY onload='displayPayload()' >\n" +
