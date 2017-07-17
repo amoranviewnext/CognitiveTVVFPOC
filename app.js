@@ -146,6 +146,8 @@ function entradaPrincipal(req,res) {
  * @returns
  */
 function devuelveDatos(req,res,datos) {
+    console.info("<-----Entrada Final:", JSON.stringify(datos.input));
+    console.info("<-----Salida Final:", JSON.stringify(datos.output));
 	console.info("<-----Contexto Final:"+JSON.stringify(datos.context));
 	//res.charset='ISO-8859-1';
     if (!(typeof req.query.modoCliente == 'undefined' && req.query.modoCliente == null)) {
@@ -169,22 +171,27 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
     if (frase == 'undefined' || frase == null) {
         frase = '';
 //        contexto = new Object;
-    }	
+    }
+    var user = req.query.user || req.body.user;
+    if (user === undefined || user == null ) {
+        user = '';
+    }
+
     var response = "<HEAD>" +
     "<title>Cognitive TV Vodafone Dummy Agent</title>\n" +
-    "<meta charset=\"utf-8\"/>"  + 
     "<link rel=\"stylesheet\" href=\"css/app.css\">\n " +
     "</HEAD>\n" +
     "<BODY onload='displayPayload()' >\n" +
     "<P><strong><big><big><a href=\"/testClienteAndroid\">Cliente Android</a></big></big></strong></P>" +
     "<FORM action=\"/testClienteAndroid\" method=\"post\">\n" +
     "<P>\n" +
-    "<table  border=1 cellspacing=0 cellpading=0>" +
+    "<table  border=1 cellspacing=0 cellpading=0>" +    
     "<tr><td width=120 align='right'><strong>Anterior entrada </strong></td><td><INPUT readonly size=\"120\" style =\"color: #888888; background-color: #DDDDDD;\" type=\"text\"  value=\"" + frase + "\">" +
     "<INPUT id = \"hiddenContext\" name=\"context\" type=\"hidden\" size=\"120\" style =\"color: #888888; background-color: #DDDDDD;\" type=\"text\"  value='" + escapeJSON(datosClienteAndroid.context) + "'></td > </tr>" +
     "</P>\n" +
     "</FORM>\n";
     response = response + "<tr><td align='right'><strong>Salida Cliente</strong></td><td>" + datosClienteAndroid.output + "</td></tr>";
+    response = response + "<tr><td align='right'><strong>Usuario </strong></td><td align ='right'><big> <INPUT size=\"120\" style =\" font-size: large;\" type=\"text\" name=\"user\" value=\""+ user +"\" autofocus></big><br> ";        
     response = response + "<tr><td align='right'><strong>Entrada Cliente</strong></td><td align ='right'><big> <INPUT size=\"120\" style =\" font-size: large; background-color: #99CCFF;\" type=\"text\" name=\"frase\" value=\"\" autofocus></big><br> " +
         "<INPUT type=\"submit\" style=\"font-size: larger;\"  value=\"Enviar al orquestador\"></td></tr></table><br><br>";
     response = response + "<P><strong><big><big>Watson Conversations</big></big></strong></P>" + "<table width=500 border=1 cellspacing=0 cellpading=0>";
@@ -194,10 +201,13 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
     response = response + "<tr><td><strong>cast</strong></td><td>" + datosClienteAndroid.context.cast + "</td></tr>";
     response = response + "<tr><td><strong>director</strong></td><td>" + datosClienteAndroid.context.director + "</td></tr>";
     response = response + "<tr><td><strong>novedades</strong></td><td>" + datosClienteAndroid.context.novedades + "</td></tr>";
+    response = response + "<tr><td><strong>año</strong></td><td>" + datosClienteAndroid.context.year + "</td></tr>";
     response = response + "<tr><td><strong>valoracion</strong></td><td>" + datosClienteAndroid.context.valoracion + "</td></tr>";
     response = response + "<tr><td><strong>numPalabrasEntrada</strong></td><td>" + datosClienteAndroid.context.numPalabrasEntrada + "</td></tr>";  
     response = response + "<tr><td><strong>numPalabrasEntradaRaw</strong></td><td>" + datosClienteAndroid.context.numPalabrasEntradaRaw + "</td></tr>";
     response = response + "<tr><td><strong>es_totalResults(Anterior)</strong></td><td>" + datosClienteAndroid.context.es_totalResults + "</td></tr>";
+    response = response + "<tr><td><strong>episode_number</strong></td><td>" + datosClienteAndroid.context.episode_number + "</td></tr>";
+    response = response + "<tr><td><strong>season_number</strong></td><td>" + datosClienteAndroid.context.season_number + "</td></tr>";
     response = response + "<tr><td><strong>Lanzar búsqueda WEX</strong></td><td>" + datosClienteAndroid.context.Busqueda_WEX + "</td></tr>";
     response = response + "</table>";
     if (datosClienteAndroid.context.Busqueda_WEX) {
@@ -326,6 +336,19 @@ function peticionClienteAndroid(req, res) {
 			console.info("El contexto recien parseado modo apk"+JSON.stringify(paramContext));
 		} 
 	}
+    var paramUser = {};
+    if (req.body.user) {
+        console.info('Tipo del user : ' + (typeof req.body.user));
+        if (typeof req.body.user == 'string'){
+            console.info("USUARIO :: ", req.body.user);
+            paramUser = req.body.user;
+            console.info("El USUARIO recien parseado"+paramUser);
+        } else if (typeof req.body.user == 'object') {
+            paramUser = req.body.user;
+            console.info("El USUARIO recien parseado modo apk"+JSON.stringify(paramUser));
+        }
+    }
+
     var payload = {
         workspace_id: workspace,
         context: paramContext,
@@ -354,7 +377,7 @@ function peticionClienteAndroid(req, res) {
             if (logDDBB) {
                 // If the logs db is set, then we want to record all input and responses 
             	idLog = uuid.v4(); 
-            	logDDBB.insert( {'_id': idLog, 'request': rawInput  + " --> " +entrada, 'response': data, 'time': new Date()}); 
+            	logDDBB.insert( {'user': paramUser, '_id': idLog, 'request': rawInput  + " --> " +entrada, 'response': data, 'time': new Date()}); 
             }
             //console.log("por allá:" + data.intents[0].confidence);
 
@@ -374,7 +397,11 @@ function peticionClienteAndroid(req, res) {
             var cast = data.context.cast;
             var director = data.context.director;
             var novedades = data.context.novedades;
-            var valoracion = data.context.valoracion;
+            var valoracion = data.context.valoracion;            
+            var year = data.context.year;
+            var season_number = data.context.season_number;
+            var episode_number = data.context.episode_number;
+
 
             var orden = "";
 
@@ -399,6 +426,28 @@ function peticionClienteAndroid(req, res) {
             if ("novedades" == novedades) {
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"year:","2017");
             }
+
+            if (year !== undefined && year !== "") {                
+                parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.YEAR +":", year);
+            }
+
+            if (season_number !== undefined && season_number !== ""){
+                if (season_number.toLowerCase().startsWith("temporada")){
+                    season_number = season_number.toLowerCase();
+                    season_number = season_number.replace("temporada ", "");
+                }
+                parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.SEASON_NUMBER+":", season_number);
+            }
+
+            if (episode_number !== undefined && episode_number !== ""){
+                if (episode_number.toLowerCase().startsWith("episodio")){
+                    episode_number = episode_number.toLowerCase();
+                    episode_number = episode_number.replace("episodio ", "");
+                }
+
+                parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.EPISODE_NUMBER+":", episode_number);
+            }
+            
 
             parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"title:",title);
             parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"genres:",genres);
@@ -469,7 +518,7 @@ function peticionClienteAndroid(req, res) {
                     	//console.log("Se ha llamado al conversation la segunda vez y ha devuelto:"+data2.output.text)
                     	console.info(JSON.stringify(data2.context));
                     	datos.context = data2.context;
-                    	datos.output = data2.output.text;
+                    	datos.output = data2.output.text;                        
                     	devuelveDatos(req,res,datos);
                     });
                 });
@@ -482,7 +531,7 @@ function peticionClienteAndroid(req, res) {
                     context: data.context,
                     es_result : [],
                     llamadaWEX : false                    
-                }
+                }                
 
                 //res.send(data);                    
                 //console.log("### RESPONSE FROM CONVERSATION :: " , responseConversation);
@@ -632,61 +681,108 @@ if ( cloudantUrl ) {
 	  
 	   // Endpoint which allows conversation logs to be fetched 
 	   //app.get( '/chats', auth, function(req, res) {
-	   app.get( '/chats', function(req, res) {
+	   app.get( '/chats/:user', function(req, res) {
 		   logDDBB.list( {include_docs: true, 'descending': true}, function(err, body) { 
 	       console.error(err); 
 	       // download as CSV 
-	       var csv = []; 
-	       csv.push( ['Question', 'Intent', 'Confidence', 'Entity', 'Output', 'Time'] );
-	       console.log("Numero de filas en la BBDD de logs"+body.row.length);
+	       //var csv = []; 
+           var csv = []; 
+	       //csv.push( ['Question', 'Intent', 'Confidence', 'Entity', 'Output', 'Time'] );
+           //csv.push(['ID', 'USUARIO', 'ENTRADA', 'SALIDA', 'HORA']);
+	       //console.log("Numero de filas en la BBDD de logs"+body.row.length);
 	       if (body != null) {
-	       body.rows.sort( function(a, b) { 
-	         if ( a && b && a.doc && b.doc ) { 
-	           var date1 = new Date( a.doc.time ); 
-	           var date2 = new Date( b.doc.time ); 
-	           var t1 = date1.getTime(); 
-	           var t2 = date2.getTime(); 
-	           var aGreaterThanB = t1 > t2; 
-	           var equal = t1 === t2; 
-	           if (aGreaterThanB) { 
-	             return 1; 
-	           } 
-	           return  equal ? 0 : -1; 
-	         } 
-	       } ); 
-	       body.rows.forEach( function(row) { 
-	         var question = ''; 
-	         var intent = ''; 
-	         var confidence = 0; 
-	         var time = ''; 
-	         var entity = ''; 
-	         var outputText = ''; 
-	         if ( row.doc ) { 
-	           var doc = row.doc; 
-	           if ( doc.request && doc.request.input ) { 
-	             question = doc.request.input.text; 
-	           } 
-	           if ( doc.response ) { 
-	             intent = '<no intent>'; 
-	             if ( doc.response.intents && doc.response.intents.length > 0 ) { 
-	               intent = doc.response.intents[0].intent; 
-	               confidence = doc.response.intents[0].confidence; 
-	             } 
-	             entity = '<no entity>'; 
-	             if ( doc.response.entities && doc.response.entities.length > 0 ) { 
-	               entity = doc.response.entities[0].entity + ' : ' + doc.response.entities[0].value; 
-	             } 
-	             outputText = '<no dialog>'; 
-	             if ( doc.response.output && doc.response.output.text ) { 
-	               outputText = doc.response.output.text.join( ' ' ); 
-	             } 
-	           } 
-	           time = new Date( doc.time ).toLocaleString(); 
-	         } 
-	         csv.push( [question, intent, confidence, entity, outputText, time] ); 
-	       } );
+                var chatUser = req.params.user;
+
+                body.rows.sort( function(a, b) { 
+                    if ( a && b && a.doc && b.doc ) { 
+                    var date1 = new Date( a.doc.time ); 
+                    var date2 = new Date( b.doc.time ); 
+                    var t1 = date1.getTime(); 
+                    var t2 = date2.getTime(); 
+                    var aGreaterThanB = t1 > t2; 
+                    var equal = t1 === t2; 
+                    if (aGreaterThanB) { 
+                        return 1; 
+                    } 
+                    return  equal ? 0 : -1; 
+                    } 
+                } ); 
+                body.rows.forEach( function(row) { 
+                    var question = ''; 
+                    var intent = ''; 
+                    var confidence = 0; 
+                    var time = ''; 
+                    var entity = ''; 
+                    var outputText = ''; 
+                    var idConversation = '';
+                    var convUser = '';
+                    var response = {};
+                    if ( row.doc ) { 
+                    var doc = row.doc; 
+                    /*if ( doc.request && doc.request.input ) { 
+                        question = doc.request.input.text; 
+                    } */
+                    if ( doc.response ) { 
+                        intent = '<no intent>'; 
+                        if ( doc.response.intents && doc.response.intents.length > 0 ) { 
+                        intent = doc.response.intents[0].intent; 
+                        confidence = doc.response.intents[0].confidence; 
+                        } 
+                        entity = '<no entity>'; 
+                        if ( doc.response.entities && doc.response.entities.length > 0 ) { 
+                        entity = doc.response.entities[0].entity + ' : ' + doc.response.entities[0].value; 
+                        } 
+                        outputText = '<no dialog>'; 
+                        if ( doc.response.output && doc.response.output.text ) { 
+                            outputText = doc.response.output.text.join( ' ' ); 
+                        } 
+                        question = '<no dialog>'
+                        if ( doc.response.input && doc.response.input.text ) {
+                            question = doc.response.input.text; 
+                        }
+                    }
+                    idConversation = '<NO ID>';
+                    if (doc.response.context && doc.response.context.conversation_id){
+                        idConversation = doc.response.context.conversation_id;
+                    }
+                    if (doc.user){
+                            convUser = doc.user;
+                    }
+                    if (doc.response){
+                        response = doc.response;
+                    }
+
+                    time = new Date( doc.time ).toLocaleString(); 
+                    } 
+                    //csv.push( [question, intent, confidence, entity, outputText, time] ); 
+                    if (convUser === chatUser) {
+                        //csv.push([idConversation, convUser, question, outputText, time]);
+                        
+                        if (csv[idConversation] === undefined){
+                            csv[idConversation] = [];
+                            csv[idConversation].push(['ID', 'USUARIO', 'ENTRADA', 'SALIDA', 'HORA']);
+                            csv[idConversation].push([convUser, question, outputText, time]);
+                            console.info("CREANDO ARRAY BBDD : ", idConversation, convUser, question, outputText, time, csv[idConversation]);
+                        } else {
+                            csv[idConversation].push([convUser, question, outputText, time]);
+                            console.info("AÑADIENDO ARRAY BBDD : ", idConversation, convUser, question, outputText, time, csv[idConversation]);
+                        }
+
+
+                        /*if (csv[idConversation]){
+                            csv[idConversation].push([convUser, question, outputText, time]);
+                        } else {
+                            csv.push(idConversation);
+                            csv[idConversation] = [];
+                            csv[idConversation].push([convUser, question, outputText, time]);
+                        }*/
+
+                    }
+                } );
 		   };
-	       res.json( csv ); 
+           console.info("RESULTADO CHAT ", chatUser, csv);
+           res.send( csv)
+	       //res.json( csv ); 
 	     } ); 
 	   } ); 
 }  // Fin  if cloudantUrl 
