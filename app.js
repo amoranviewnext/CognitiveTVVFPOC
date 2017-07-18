@@ -402,6 +402,8 @@ function peticionClienteAndroid(req, res) {
             var year = data.context.year;
             var season_number = data.context.season_number;
             var episode_number = data.context.episode_number;
+            var decada = data.context.decada;
+            var nacionalidad = data.context.nationality;
 
 
             var orden = "";
@@ -432,6 +434,7 @@ function peticionClienteAndroid(req, res) {
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.YEAR +":", year);
             }
 
+            // FILTRO POR TEMPORADAS
             if (season_number !== undefined && season_number !== ""){
                 if (season_number.toLowerCase().startsWith("temporada")){
                     season_number = season_number.toLowerCase();
@@ -440,13 +443,39 @@ function peticionClienteAndroid(req, res) {
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.SEASON_NUMBER+":", season_number);
             }
 
+            // FILTRO POR CAPITULOS
             if (episode_number !== undefined && episode_number !== ""){
                 if (episode_number.toLowerCase().startsWith("episodio")){
                     episode_number = episode_number.toLowerCase();
                     episode_number = episode_number.replace("episodio ", "");
                 }
-
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.EPISODE_NUMBER+":", episode_number);
+            }
+
+            // FILTRO POR NACIONALIDAD
+            if (nacionalidad !== undefined && nacionalidad !== ""){
+                parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.NATIONALITY+":", nacionalidad);
+            }
+
+
+            // BUSQUEDA POR DECADA            
+            var queryDecada = ""
+            if (decada !== undefined && decada !== ""){
+                console.log("Decada de los :: " + decada);
+                for (var i = 10 ; i< 100 ;){                    
+                    if (decada >= i && decada < i+10){                        
+                        for (var idx = i; idx < (i+10) ; idx++ ){                            
+                            //var keyword = "(keyword::\/\"year\"\/\"%currentYear%\")";
+                            var keyword = '(keyword::/"year"/"'+ "19" + idx +'")';                                                        
+                            queryDecada = (queryDecada === "") ? keyword : queryDecada + " OR " + keyword;
+                        }                          
+                    }
+                    i = i+10;
+                }
+                if (queryDecada !== ""){
+                    queryDecada = "(" + queryDecada + ")";
+                    console.info("QUERY DECADA :: ", queryDecada);
+                }
             }
             
 
@@ -455,6 +484,9 @@ function peticionClienteAndroid(req, res) {
             parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"show_type:",show_type);
             parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"cast:",cast);
             parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"director:",director);
+            if (queryDecada !== ""){
+                parametrosBusqueda = parametrosBusqueda + queryDecada;
+            }
 
             // TODO Que se utiliza el que nosotros tenemos y hemos enviado o la variable de conversation 
             var palabrasEntrada = [];
