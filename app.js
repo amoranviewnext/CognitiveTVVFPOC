@@ -445,12 +445,12 @@ function peticionClienteAndroid(req, res) {
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"year:","2017");
             }
 
-            if (year !== undefined && year !== "") {                
+            if (year!==null && year !== undefined && year !== "") {                
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.YEAR +":", year);
             }
 
             // FILTRO POR TEMPORADAS
-            if (season_number !== undefined && season_number !== ""){
+            if (season_number!==null && season_number !== undefined && season_number !== ""){
                 if (season_number.toLowerCase().startsWith("temporada")){
                     season_number = season_number.toLowerCase();
                     season_number = season_number.replace("temporada ", "");
@@ -460,7 +460,7 @@ function peticionClienteAndroid(req, res) {
             }
 
             // FILTRO POR CAPITULOS
-            if (episode_number !== undefined && episode_number !== ""){
+            if (episode_number!==null && episode_number !== undefined && episode_number !== ""){
                 if (episode_number.toLowerCase().startsWith("episodio")){
                     episode_number = episode_number.toLowerCase();
                     episode_number = episode_number.replace("episodio ", "");
@@ -470,7 +470,7 @@ function peticionClienteAndroid(req, res) {
             }
 
             // FILTRO POR NACIONALIDAD
-            if (nacionalidad!== null && nacionalidad !== undefined && nacionalidad !== ""){
+            if (nacionalidad!==null && nacionalidad !== undefined && nacionalidad !== ""){
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.NATIONALITY+":", nacionalidad);
                 stringRemoves.push(nacionalidad)
             }
@@ -478,7 +478,7 @@ function peticionClienteAndroid(req, res) {
 
             // BUSQUEDA POR DECADA            
             var queryDecada = ""
-            if (decada !== undefined && decada !== ""){
+            if (decada!==null && decada !== undefined && decada !== ""){
                 console.log("Decada de los :: " + decada);
                 for (var i = 10 ; i< 100 ;){                    
                     if (decada >= i && decada < i+10){                        
@@ -578,7 +578,12 @@ function peticionClienteAndroid(req, res) {
                     	//console.log("Se ha llamado al conversation la segunda vez y ha devuelto:"+data2.output.text)
                     	console.info(JSON.stringify(data2.context));
                     	datos.context = data2.context;
-                    	datos.output = data2.output.text;                        
+                    	datos.output = data2.output.text;      
+                        if (logDDBB) {
+                            // If the logs db is set, then we want to record all input and responses 
+            	            idLog = uuid.v4(); 
+            	            logDDBB.insert( {'user': paramUser, '_id': idLog, 'request': rawInput  + " --> " +entrada, 'response': data, 'time': new Date()}); 
+                        }                  
                     	devuelveDatos(req,res,datos);
                     });
                 });
