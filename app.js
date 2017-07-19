@@ -25,6 +25,8 @@ var uuid = require( 'uuid' );
 var vcapServices = require( 'vcap_services' ); 
 var basicAuth = require( 'basic-auth-connect' ); 
 
+var removeAccents = require('remove-accents');
+
 // The app owner may optionally configure a cloudand db to track user input. 
 // This cloudand db is not required, the app will operate without it. 
 // If logging is enabled the app must also enable basic auth to secure logging 
@@ -173,8 +175,8 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
 //        contexto = new Object;
     }
     var user = req.query.user || req.body.user;
-    if (user === undefined || user == null ) {
-        user = '';
+    if (user === undefined || user == null || user === "") {
+        user = 'test01';
     }
 
     var response = "<HEAD>" +
@@ -192,7 +194,7 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
     "</P>\n" +
     "</FORM>\n";
     response = response + "<tr><td align='right'><strong>Salida Cliente</strong></td><td>" + datosClienteAndroid.output + "</td></tr>";
-    response = response + "<tr><td align='right'><strong>Usuario </strong></td><td align ='right'><big> <INPUT size=\"120\" style =\" font-size: large;\" type=\"text\" name=\"user\" value=\""+ user +"\" autofocus></big><br> ";        
+    response = response + "<tr><td align='right'><strong>Usuario </strong></td><td align ='right'><big> <INPUT size=\"120\" style =\" font-size: large;\" type=\"text\" name=\"user\" value=\""+ user +"\" ></big><br> ";        
     response = response + "<tr><td align='right'><strong>Entrada Cliente</strong></td><td align ='right'><big> <INPUT size=\"120\" style =\" font-size: large; background-color: #99CCFF;\" type=\"text\" name=\"frase\" value=\"\" autofocus></big><br> " +
         "<INPUT type=\"submit\" style=\"font-size: larger;\"  value=\"Enviar al orquestador\"></td></tr></table><br><br>";
     response = response + "<P><strong><big><big>Watson Conversations</big></big></strong></P>" + "<table width=500 border=1 cellspacing=0 cellpading=0>";
@@ -407,15 +409,13 @@ function peticionClienteAndroid(req, res) {
 
             var stringRemoves = [];
             if (title !== null && title !== undefined && title !== ""){
-                var cTitle = title.toLowerCase().split(' ');
-                console.log("cTitle", cTitle);
-                stringRemoves = stringRemoves.concat(cTitle);
-                console.log("string Removes", stringRemoves);
+                var cTitle = removeAccents(title.toLowerCase()).split(' ');            
+                stringRemoves = stringRemoves.concat(cTitle);                
             } else if (director!==null && director !== undefined && director !== ""){
-                var cDirector = director.toLowerCase().split(' ');
+                var cDirector = removeAccents(director.toLowerCase()).split(' ');
                 stringRemoves = stringRemoves.concat(cDirector);
             } else if (cast !== null && cast !== undefined && cast !== ""){
-                var cCast = cast.toLowerCase().split(' ');
+                var cCast = removeAccents(cast.toLowerCase()).split(' ');
                 stringRemoves = stringRemoves.concat(cCast);
             } else if (decada!==null && decada !== undefined && decada !== ""){
                 stringRemoves = stringRemoves.push(decada);
