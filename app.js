@@ -406,6 +406,9 @@ function peticionClienteAndroid(req, res) {
             var episode_number = data.context.episode_number;
             var decada = data.context.decada;
             var nacionalidad = data.context.nationality;
+            var pixar = data.context.Pixar || data.context.pixar;
+            var disney = data.context.Disney || data.context.disney;
+            var marvel = data.context.Marvel || data.context.marvel;
 
             var stringRemoves = [];
             if (title !== null && title !== undefined && title !== ""){
@@ -416,6 +419,7 @@ function peticionClienteAndroid(req, res) {
                 stringRemoves = stringRemoves.concat(cDirector);
             } else if (cast !== null && cast !== undefined && cast !== ""){
                 var cCast = removeAccents(cast.toLowerCase()).split(' ');
+                console.log("FILTER CAST", removeAccents(cast.toLowerCase()));
                 stringRemoves = stringRemoves.concat(cCast);
             } else if (decada!==null && decada !== undefined && decada !== ""){
                 stringRemoves = stringRemoves.push(decada);
@@ -475,6 +479,24 @@ function peticionClienteAndroid(req, res) {
                 stringRemoves.push(nacionalidad)
             }
 
+            // FILTRO PIXAR
+            if (pixar!==null && pixar!==undefined && pixar!==""){
+                parametrosBusqueda = agregarKeyword(parametrosBusqueda, "pixar", "Pixar");
+                stringRemoves.push("pixar");
+            }
+
+            // FILTRO DISNEY
+            if (disney!==null && disney!==undefined && disney!==""){
+                parametrosBusqueda = agregarKeyword(parametrosBusqueda, "disney", "Disney");
+                stringRemoves.push("disney");
+            }
+
+            // FILTRO MARVELL
+            if (marvel!==null && marvel!==undefined && marvel!==""){
+                parametrosBusqueda = agregarKeyword(parametrosBusqueda, "marvel", "Marvel");
+                stringRemoves.push("marvel");
+            }
+
 
             // BUSQUEDA POR DECADA            
             var queryDecada = ""
@@ -495,7 +517,7 @@ function peticionClienteAndroid(req, res) {
                     queryDecada = "(" + queryDecada + ")";
                     console.info("QUERY DECADA :: ", queryDecada);
                 }
-            }
+            }    
             
 
             parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"title:",title);
@@ -511,7 +533,7 @@ function peticionClienteAndroid(req, res) {
             var palabrasEntrada = [];
             
             if (typeof data.context.input_text == 'string') {
-            	palabrasEntrada = limpiarSimbolos(data.context.input_text).split(' ');
+            	palabrasEntrada = limpiarSimbolos(data.context.input_text.toLowerCase()).split(' ');
             }
 
             
@@ -696,6 +718,19 @@ function agregarParametroBusq(parametrosBusqueda,campo,valor) {
 		return parametrosBusqueda;
 	}
 	
+}
+
+function agregarKeyword(parametrosBusqueda, campo, valor) {
+    if (valor != null && '' != valor ) {
+		var strAuxiliar=parametrosBusqueda;
+	    if (strAuxiliar.length > 0) {
+	
+	    	strAuxiliar = strAuxiliar + " AND ";
+	    }
+	    return strAuxiliar + "(keyword::/\""+ campo + "\"/\"" + valor + "\")";
+	} else {
+		return parametrosBusqueda;
+	}
 }
 
 function parseResponse(datos) {
