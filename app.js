@@ -387,7 +387,7 @@ function peticionClienteAndroid(req, res) {
             // TODO: Meter en un bucle con las propiedades en un array             
             //var parametrosBusqueda = "NOT(show_type:Series)";
             var parametrosBusqueda = "";
-            var parametrosOrdenacion = "";
+            var parametrosOrdenacion = "";            
 
 
            // console.log("Contexto en json:" +res.json(data.context));
@@ -405,6 +405,21 @@ function peticionClienteAndroid(req, res) {
             var decada = data.context.decada;
             var nacionalidad = data.context.nationality;
 
+            var stringRemoves = [];
+            if (title !== null && title !== undefined && title !== ""){
+                var cTitle = title.toLowerCase().split(' ');
+                console.log("cTitle", cTitle);
+                stringRemoves = stringRemoves.concat(cTitle);
+                console.log("string Removes", stringRemoves);
+            } else if (director!==null && director !== undefined && director !== ""){
+                var cDirector = director.toLowerCase().split(' ');
+                stringRemoves = stringRemoves.concat(cDirector);
+            } else if (cast !== null && cast !== undefined && cast !== ""){
+                var cCast = cast.toLowerCase().split(' ');
+                stringRemoves = stringRemoves.concat(cCast);
+            } else if (decada!==null && decada !== undefined && decada !== ""){
+                stringRemoves = stringRemoves.push(decada);
+            }
 
             var orden = "";
 
@@ -439,6 +454,7 @@ function peticionClienteAndroid(req, res) {
                 if (season_number.toLowerCase().startsWith("temporada")){
                     season_number = season_number.toLowerCase();
                     season_number = season_number.replace("temporada ", "");
+                    stringRemoves.push(season_number);
                 }
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.SEASON_NUMBER+":", season_number);
             }
@@ -448,13 +464,15 @@ function peticionClienteAndroid(req, res) {
                 if (episode_number.toLowerCase().startsWith("episodio")){
                     episode_number = episode_number.toLowerCase();
                     episode_number = episode_number.replace("episodio ", "");
+                    stringRemoves.push(episode_number);
                 }
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.EPISODE_NUMBER+":", episode_number);
             }
 
             // FILTRO POR NACIONALIDAD
-            if (nacionalidad !== undefined && nacionalidad !== ""){
+            if (nacionalidad!== null && nacionalidad !== undefined && nacionalidad !== ""){
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.NATIONALITY+":", nacionalidad);
+                stringRemoves.push(nacionalidad)
             }
 
 
@@ -468,6 +486,7 @@ function peticionClienteAndroid(req, res) {
                             //var keyword = "(keyword::\/\"year\"\/\"%currentYear%\")";
                             var keyword = '(keyword::/"year"/"'+ "19" + idx +'")';                                                        
                             queryDecada = (queryDecada === "") ? keyword : queryDecada + " OR " + keyword;
+                            //stringRemoves.push("19"+idx);
                         }                          
                     }
                     i = i+10;
@@ -494,8 +513,16 @@ function peticionClienteAndroid(req, res) {
             if (typeof data.context.input_text == 'string') {
             	palabrasEntrada = limpiarSimbolos(data.context.input_text).split(' ');
             }
+
+            
             
             var arrEntrada_filtrado=sw.removeStopwords(palabrasEntrada, sw.es);
+            console.log("FILTRADO STOPWORDS :: ", arrEntrada_filtrado);
+            if (stringRemoves.length > 0){
+                console.log("STRING TO REMOVE", stringRemoves);
+                arrEntrada_filtrado = clearInputDescription(stringRemoves, arrEntrada_filtrado);
+                console.log("FILTRADO RUIDO AFTER STOPWORDS", arrEntrada_filtrado , " ", stringRemoves);
+            }                       
             var filtroInputEntrada = arrEntrada_filtrado.toString();
             filtroInputEntrada=filtroInputEntrada.replace(/,/g, ' OR ');
         	if (filtroInputEntrada != null && '' != filtroInputEntrada ) { 
@@ -593,6 +620,22 @@ function buscaPosPropiedad(data, propiedad, callback) {
         }
     }
     callback(id);
+
+}
+
+function clearInputDescription(removeString, inputString){
+
+    var returnArray = [];
+    for (var i = 0; i< inputString.length; i++){
+    //for (var item in inputString) {
+        var item = inputString[i];
+        console.log("Analizing .. ", item);
+        if (removeString.indexOf(item) === -1){
+            console.log("Add .. ", item);
+            returnArray.push(item);
+        }
+    }
+    return returnArray;
 
 }
 
