@@ -446,7 +446,12 @@ function peticionClienteAndroid(req, res) {
 
 
             if ("novedades" == novedades) {
-                parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"year:","2017");
+                //parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"year:","2017");
+                if (parametrosBusqueda!==""){
+                    parametrosBusqueda = parametrosBusqueda + "AND (year:2017 OR year:2016 OR year:2015)"
+                } else {
+                    parametrosBusqueda = parametrosBusqueda + "(year:2017 OR year:2016 OR year:2015)"
+                }                
             }
 
             if (year!==null && year !== undefined && year !== "") {                
@@ -495,6 +500,10 @@ function peticionClienteAndroid(req, res) {
             if (marvel!==null && marvel!==undefined && marvel!==""){
                 parametrosBusqueda = agregarKeyword(parametrosBusqueda, "marvel", "Marvel");
                 stringRemoves.push("marvel");
+            }
+
+            if (show_type!==null && show_type!==undefined && show_type!=="" && (show_type.toLowerCase() === "series" || show_type.toLowerCase() === "serie" ) ){
+                parametrosOrdenacion = parametrosOrdenacion + process.env.ORDER_SERIES_NOVEDADES;
             }
 
 
