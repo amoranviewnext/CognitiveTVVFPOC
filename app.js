@@ -410,6 +410,7 @@ function peticionClienteAndroid(req, res) {
             var pixar = data.context.Pixar || data.context.pixar;
             var disney = data.context.Disney || data.context.disney;
             var marvel = data.context.Marvel || data.context.marvel;
+            var ultimo = data.context.ultimo;
 
             var stringRemoves = [];
             if(genres !== null && genres !== undefined && genres !== ""){
@@ -427,6 +428,9 @@ function peticionClienteAndroid(req, res) {
                 stringRemoves = stringRemoves.concat(cCast);
             } else if (decada!==null && decada !== undefined && decada !== ""){
                 stringRemoves = stringRemoves.push(decada);
+            } else if (ultimo!==null && ultimo !== undefined && ultimo !== ""){
+                var cUltimo = removeAccents(ultimo.toLowerCase()).split(' ');
+                stringRemoves = stringRemoves.push(cUltimo);
             }
 
             var orden = "";
@@ -606,7 +610,26 @@ function peticionClienteAndroid(req, res) {
                     var entrada2 = {"text":"ActualizandoContextoOrquestador"};
                     payload.input = entrada2;
                     payload.context = datos.context;
+                    
+                    /*var genresArray = [];
+                    // GENERAMOS UN ARRAY CON LOS GENEROS ENCONTRADOS PARA ENVIAR A CONVERSATION                    
+                    if (datos.es_result!==undefined && datos.es_result!==null && datos.es_result.length !== undefined && datos.es_result.length > 1){
 
+                        for (var i = 0; i<datos.es_result.length ; i++){
+                            var item = datos.es_result[i];
+                            var idxGenre = searchItemByTag(item.ibmsc_field, "genres");
+                            var currentGenre = item.ibmsc_field[idxGenre]["#text"];
+                            if (genresArray.indexOf(currentGenre) === -1){
+                                genresArray.push(currentGenre);
+                            }
+                        }
+                    }
+                    if (genresArray.length > 0){
+                        datos.context.genresArray = genresArray;
+                    }*/
+
+
+                    // SI MANEJAMOS CONTENIDO RELATIVO A SERIES, DEVOLVEMOS EL JSON ORDENADO POR TEMPORADA Y CAPÍTULOS
                     if (show_type!==null && show_type!==undefined && show_type!=="" && (show_type.toLowerCase() === "series" || show_type.toLowerCase() === "serie" ) ){
                         if (datos.es_result!==undefined && datos.es_result!==null && datos.es_result.length !== undefined && datos.es_result.length > 1){
                             var returnResult = [];
@@ -640,7 +663,14 @@ function peticionClienteAndroid(req, res) {
                                 }
                             }
                             //datos.es_result = orderResult;
-                            datos.es_result = newResult;
+                            /*if (ultimo!==null && ultimo !== undefined && ultimo!==""){
+                                datos.es_result = newResult[0];
+                                datos.context.es_totalResults = 1;
+                            } else {
+                                datos.es_result = newResult;
+                            }*/
+
+                            
                             
                         }
                     }
