@@ -26,6 +26,7 @@ var vcapServices = require( 'vcap_services' );
 var basicAuth = require( 'basic-auth-connect' ); 
 
 var removeAccents = require('remove-accents');
+var sortArray = require('sort-array');
 
 // The app owner may optionally configure a cloudand db to track user input. 
 // This cloudand db is not required, the app will operate without it. 
@@ -411,7 +412,10 @@ function peticionClienteAndroid(req, res) {
             var marvel = data.context.Marvel || data.context.marvel;
 
             var stringRemoves = [];
-            if (title !== null && title !== undefined && title !== ""){
+            if(genres !== null && genres !== undefined && genres !== ""){
+                var cGenres = removeAccents(genres.toLowerCase()).split(' '); 
+                stringRemoves = stringRemoves.concat(cGenres);
+            }else if (title !== null && title !== undefined && title !== ""){
                 var cTitle = removeAccents(title.toLowerCase()).split(' ');            
                 stringRemoves = stringRemoves.concat(cTitle);                
             } else if (director!==null && director !== undefined && director !== ""){
@@ -542,12 +546,14 @@ function peticionClienteAndroid(req, res) {
             var palabrasEntrada = [];
             
             if (typeof data.context.input_text == 'string') {
-            	palabrasEntrada = limpiarSimbolos(data.context.input_text.toLowerCase()).split(' ');
+                var inputClean = removeAccents(data.context.input_text.toLowerCase());
+            	//palabrasEntrada = limpiarSimbolos(data.context.input_text.toLowerCase()).split(' ');
+                palabrasEntrada = limpiarSimbolos(inputClean).split(' ');
             }
 
             
             
-            var arrEntrada_filtrado=sw.removeStopwords(palabrasEntrada, sw.es);
+            var arrEntrada_filtrado=sw.removeStopwords( palabrasEntrada, sw.es);
             console.log("FILTRADO STOPWORDS :: ", arrEntrada_filtrado);
             if (stringRemoves.length > 0){
                 console.log("STRING TO REMOVE", stringRemoves);
@@ -600,6 +606,46 @@ function peticionClienteAndroid(req, res) {
                     var entrada2 = {"text":"ActualizandoContextoOrquestador"};
                     payload.input = entrada2;
                     payload.context = datos.context;
+
+                    if (show_type!==null && show_type!==undefined && show_type!=="" && (show_type.toLowerCase() === "series" || show_type.toLowerCase() === "serie" ) ){
+                        if (datos.es_result!==undefined && datos.es_result!==null && datos.es_result.length !== undefined && datos.es_result.length > 1){
+                            var returnResult = [];
+                            var newResult = datos.es_result;
+                            var maxSeason, maxEpisode = 0;
+
+                            for (var i = 0; i<newResult.length ; i++){
+                                var item = newResult[i];
+                                console.log(item);
+                                var idxSeason = searchItemByTag(item.ibmsc_field, "season_number");
+                                var idxEpisode = searchItemByTag(item.ibmsc_field, "episode_number");
+                                item.episode_number = parseInt(item.ibmsc_field[idxSeason]["#text"]);
+                                item.season_number = parseInt(item.ibmsc_field[idxEpisode]["#text"]);
+                            } 
+                            
+                            var orderSeason = [15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
+                            var orderEpisode = [40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
+                            newResult = sortArray(newResult, ['episode_number' , 'season_number'], {season_number: orderSeason, episode_number: orderEpisode});
+                            var orderResult = [];
+                            var currentSeason = newResult[0].season_number;
+                            
+                            for (var i = 0; i<newResult.length; i++){
+                                var item = newResult[i];                                
+                                
+                                if (item.season_number === currentSeason){
+                                    //currentSeason = item.season_number;
+                                    orderResult.push(item);
+                                } else {
+                                    currentSeason = item.season_number;
+                                    orderResult.push(item);
+                                }
+                            }
+                            //datos.es_result = orderResult;
+                            datos.es_result = newResult;
+                            
+                        }
+                    }
+
+
                     //console.info("Mensaje 2 a conversation:",JSON.stringify(payload));
                     console.info("Se realiza la segunda llamada a Conversation.");
                     conversation.message(payload, function (err, data2) {
@@ -641,6 +687,15 @@ function peticionClienteAndroid(req, res) {
 
 
 };
+
+function searchItemByTag(array, tag){
+    console.log(array);
+    for (var i = 0; i < array.length ; i++ ){
+        if (array[i].id === tag){
+            return i;
+        }
+    }
+}
 
 
 function buscaPosPropiedad(data, propiedad, callback) {
