@@ -27,6 +27,8 @@ var basicAuth = require( 'basic-auth-connect' );
 
 var removeAccents = require('remove-accents');
 var sortArray = require('sort-array');
+var csvExport = require('express-csv');
+
 
 // The app owner may optionally configure a cloudand db to track user input. 
 // This cloudand db is not required, the app will operate without it. 
@@ -899,6 +901,7 @@ if ( cloudantUrl ) {
            var csv = []; 
 	       //csv.push( ['Question', 'Intent', 'Confidence', 'Entity', 'Output', 'Time'] );
            //csv.push(['ID', 'USUARIO', 'ENTRADA', 'SALIDA', 'HORA']);
+           csv.push(['ID', 'USUARIO', 'ENTRADA', 'SALIDA', 'HORA']);
 	       //console.log("Numero de filas en la BBDD de logs"+body.row.length);
 	       if (body != null) {
                 var chatUser = req.params.user;
@@ -966,9 +969,9 @@ if ( cloudantUrl ) {
                     } 
                     //csv.push( [question, intent, confidence, entity, outputText, time] ); 
                     if (convUser === chatUser) {
-                        //csv.push([idConversation, convUser, question, outputText, time]);
+                        csv.push([idConversation, convUser, question, outputText, time]);
                         
-                        if (csv[idConversation] === undefined){
+                        /*if (csv[idConversation] === undefined){
                             csv[idConversation] = [];
                             csv[idConversation].push(['ID', 'USUARIO', 'ENTRADA', 'SALIDA', 'HORA']);
                             csv[idConversation].push([convUser, question, outputText, time]);
@@ -976,7 +979,7 @@ if ( cloudantUrl ) {
                         } else {
                             csv[idConversation].push([convUser, question, outputText, time]);
                             console.info("AÑADIENDO ARRAY BBDD : ", idConversation, convUser, question, outputText, time, csv[idConversation]);
-                        }
+                        }*/
 
 
                         /*if (csv[idConversation]){
@@ -991,7 +994,9 @@ if ( cloudantUrl ) {
                 } );
 		   };
            console.info("RESULTADO CHAT ", chatUser, csv);
-           res.send( csv)
+           //res.send( csv);
+           csvExport.separator = ";";
+           res.csv(csv);
 	       //res.json( csv ); 
 	     } ); 
 	   } ); 
