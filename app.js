@@ -413,6 +413,9 @@ function peticionClienteAndroid(req, res) {
             var disney = data.context.Disney || data.context.disney;
             var marvel = data.context.Marvel || data.context.marvel;
             var ultimo = data.context.ultimo;
+            var ultima_temporada = data.context.ultima_temporada;
+            var ultimo_capitulo = data.context.ultimo_capitulo;
+            var broadcast_language = data.context.broadcast_language;
 
             var stringRemoves = [];
             if(genres !== null && genres !== undefined && genres !== ""){
@@ -433,6 +436,15 @@ function peticionClienteAndroid(req, res) {
             } else if (ultimo!==null && ultimo !== undefined && ultimo !== ""){
                 var cUltimo = removeAccents(ultimo.toLowerCase()).split(' ');
                 stringRemoves = stringRemoves.push(cUltimo);
+            } else if (ultimo_capitulo!==null && ultimo_capitulo !== undefined && ultimo_capitulo !== ""){
+                var cUltimoCapitulo = removeAccents(ultimo_capitulo.toLowerCase()).split(' ');
+                stringRemoves = stringRemoves.push(cUltimoCapitulo);
+            } else if (ultima_temporada!==null && ultima_temporada !== undefined && ultima_temporada !== ""){
+                var cUltimaTemporada = removeAccents(ultima_temporada.toLowerCase()).split(' ');
+                stringRemoves = stringRemoves.push(cUltimaTemporada);
+            } else if (broadcast_language!==null && broadcast_language !==undefined && broadcast_language !== ""){
+                var cBroadcastLanguage = removeAccents(broadcast_language.toLowerCase()).split(' ');
+                stringRemoves = stringRemoves.push(cBroadcastLanguage);
             }
 
             var orden = "";
@@ -510,6 +522,11 @@ function peticionClienteAndroid(req, res) {
             if (marvel!==null && marvel!==undefined && marvel!==""){
                 parametrosBusqueda = agregarKeyword(parametrosBusqueda, "marvel", "Marvel");
                 stringRemoves.push("marvel");
+            }
+
+            // FILTRO IDIOMA
+            if (broadcast_language!==null && broadcast_language!==undefined && broadcast_language !== ""){
+                parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.LANGUAGE+":", broadcast_language)
             }
 
             if (show_type!==null && show_type!==undefined && show_type!=="" && (show_type.toLowerCase() === "series" || show_type.toLowerCase() === "serie" ) ){
@@ -613,7 +630,7 @@ function peticionClienteAndroid(req, res) {
                     payload.input = entrada2;
                     payload.context = datos.context;
                     
-                    /*var genresArray = [];
+                    var genresArray = [];
                     // GENERAMOS UN ARRAY CON LOS GENEROS ENCONTRADOS PARA ENVIAR A CONVERSATION                    
                     if (datos.es_result!==undefined && datos.es_result!==null && datos.es_result.length !== undefined && datos.es_result.length > 1){
 
@@ -628,7 +645,7 @@ function peticionClienteAndroid(req, res) {
                     }
                     if (genresArray.length > 0){
                         datos.context.genresArray = genresArray;
-                    }*/
+                    }
 
 
                     // SI MANEJAMOS CONTENIDO RELATIVO A SERIES, DEVOLVEMOS EL JSON ORDENADO POR TEMPORADA Y CAPÍTULOS
@@ -639,17 +656,18 @@ function peticionClienteAndroid(req, res) {
                             var maxSeason, maxEpisode = 0;
 
                             for (var i = 0; i<newResult.length ; i++){
-                                var item = newResult[i];
-                                console.log(item);
+                                var item = newResult[i];                                
                                 var idxSeason = searchItemByTag(item.ibmsc_field, "season_number");
                                 var idxEpisode = searchItemByTag(item.ibmsc_field, "episode_number");
-                                item.episode_number = parseInt(item.ibmsc_field[idxSeason]["#text"]);
-                                item.season_number = parseInt(item.ibmsc_field[idxEpisode]["#text"]);
+                                //item.episode_number = parseInt(item.ibmsc_field[idxSeason]["#text"]);
+                                //item.season_number = parseInt(item.ibmsc_field[idxEpisode]["#text"]);
+                                item.season_number = parseInt(item.ibmsc_field[idxSeason]["#text"]);
+                                item.episode_number = parseInt(item.ibmsc_field[idxEpisode]["#text"]);
                             } 
                             
                             var orderSeason = [15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
                             var orderEpisode = [40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
-                            newResult = sortArray(newResult, ['episode_number' , 'season_number'], {season_number: orderSeason, episode_number: orderEpisode});
+                            newResult = sortArray(newResult, ['season_number', 'episode_number'], {season_number: orderSeason, episode_number: orderEpisode});
                             var orderResult = [];
                             var currentSeason = newResult[0].season_number;
                             
@@ -664,7 +682,32 @@ function peticionClienteAndroid(req, res) {
                                     orderResult.push(item);
                                 }
                             }
-                            //datos.es_result = orderResult;
+
+                            if (ultimo_capitulo !==null && ultimo_capitulo !== undefined && ultimo_capitulo !== "" && ultimo_capitulo === "ultimo_capitulo"){
+                                                                                            
+                                orderResult.splice(1, orderResult.length);                                
+                                datos.context.es_totalResults = 1;
+                                console.log("ULTIMO CAPITULO" , orderResult);
+                            } else if (ultima_temporada !==null && ultima_temporada !== undefined && ultima_temporada !== "" && ultima_temporada === "ultima_temporada"){
+                                var maxCurrentSeason = orderResult[0].season_number;
+                                var lastSeasonArray = [];
+                                
+                                for (var i = 0; i < orderResult.length; i++){
+                                    
+                                    var item = orderResult[i];                                                                        
+                                    if (item.season_number === maxCurrentSeason){
+                                        lastSeasonArray.push(item);
+                                    }
+                                }
+                                if (lastSeasonArray !== undefined && lastSeasonArray !== null && lastSeasonArray.length > 0){
+                                    //orderResult.es_totalResults = lastSeasonArray.length;
+                                    datos.context.es_totalResults = lastSeasonArray.length;
+                                }
+                                
+                            }
+                            if (orderResult !== undefined && orderResult !== null && orderResult.length > 0)
+                                datos.es_result = orderResult;
+
                             /*if (ultimo!==null && ultimo !== undefined && ultimo!==""){
                                 datos.es_result = newResult[0];
                                 datos.context.es_totalResults = 1;
@@ -721,7 +764,7 @@ function peticionClienteAndroid(req, res) {
 };
 
 function searchItemByTag(array, tag){
-    console.log(array);
+    
     for (var i = 0; i < array.length ; i++ ){
         if (array[i].id === tag){
             return i;
@@ -732,14 +775,12 @@ function searchItemByTag(array, tag){
 
 function buscaPosPropiedad(data, propiedad, callback) {
 
-
     var id;
-    for (var k = 0; k < data.ibmsc_field.length; k++) {
-
-
-        if (data.ibmsc_field[k]['id'] == propiedad) {
-            id = k;
-
+    if (data.ibmsc_field !== undefined && data.ibmsc_field!==null){
+        for (var k = 0; k < data.ibmsc_field.length; k++) {
+            if (data.ibmsc_field[k]['id'] == propiedad) {
+                id = k;
+            }
         }
     }
     callback(id);
@@ -968,7 +1009,7 @@ if ( cloudantUrl ) {
                     time = new Date( doc.time ).toLocaleString(); 
                     } 
                     //csv.push( [question, intent, confidence, entity, outputText, time] ); 
-                    if (convUser === chatUser) {
+                    if (convUser === chatUser || "all" === chatUser) {
                         csv.push([idConversation, convUser, question, outputText, time]);
                         
                         /*if (csv[idConversation] === undefined){
