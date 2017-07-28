@@ -98,7 +98,7 @@ function accessXML(data, callback) {
   }
 }
 
-function request(input, order, page, callback) {  // Función que lanza la petición a la url
+function request(input, order, page, facets, callback) {  // Función que lanza la petición a la url
 
 
   console.log("Función request - Input:", input);
@@ -106,7 +106,13 @@ function request(input, order, page, callback) {  // Función que lanza la petic
   console.log("Función request - page:", page);
 
   // Parece que  WEX devuelve la misma página para page=0 y page=1
-  var url = createURL(input, order + process.env.PAGE_NUM + page + process.env.PAGE_SIZE);
+  //var url = createURL(input, order + process.env.PAGE_NUM + page + process.env.PAGE_SIZE);
+  var url = "";
+  if (!facets){
+    url = createURL(input, order + process.env.PAGE_NUM + page + process.env.PAGE_SIZE);
+  } else {
+    url = createURLFacets(input);
+  }
   console.log("URL:", url);
   var http = new XMLHttpRequest();
   http.open("GET", url, true);
@@ -118,19 +124,26 @@ function request(input, order, page, callback) {  // Función que lanza la petic
       var data = JSON.parse(http.responseText).es_apiResponse
       //console.log ("data:",data);	
 
-      if (data.es_totalResults > 0) {
+      if (data!==null && data.es_totalResults!==null && data.es_totalResults!==undefined && data.es_totalResults > 0) {
         console.log("CON RESULTADOS");
 
         // accessXML(data,function(response){
 
         callback(data);
         //})
-      } else if (data.es_totalResults == 0) {
+      } else if (data!==null && data.es_totalResults!==null && data.es_totalResults!==undefined && data.es_totalResults == 0) {
 
         console.log("SIN RESULTADOS");
 
         callback(data)
+      } else if (data!==null && data.ibmsc_facet!==null && data.ibmsc_facet !== undefined){
+        callback(data);
+      } else {
+        callback(null);
       }
+    } else {
+      //console.error("Error en la llamada", "STATUS", http.status, "readyState", http.readyState);
+      //callback(null);
     }
   }
 
@@ -144,6 +157,12 @@ function createURL(input_and, input_or) { // creacion de URL para WEX, distingui
 
   //URL: [" + wexURL + '/api/v10/search' + '?' + encodeURI(params) + "]
   return wexURL + '/api/v10/search' + '?' + encodeURI(params) + input_or;
+}
+
+function createURLFacets(input) {
+  var facet = '&facet={%22count%22:51,%22depth%22:1,%22namespace%22:%22keyword%22,%22id%22:%22$.genres%22}&output=application/json';
+  var params = 'collection=' + collection + '&query=(*:*) AND ' + input;
+  return wexURL + '/api/v10/search/facet' + '?' + encodeURI(params) + facet  ;
 }
 
 function createSummary(summary, id_respuesta) { // Propuesta para la generación de resúmenes

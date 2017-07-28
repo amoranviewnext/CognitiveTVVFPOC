@@ -171,6 +171,8 @@ function escapeJSON(datos) {
 }
 function aplicacionDummy(req,res,datosClienteAndroid) {
 	//console.info("Datos cliente android:"+JSON.stringify(datosClienteAndroid));
+    console.info("###################################################################################################################");
+    console.info("###################################################################################################################");
 	console.info("Sirviendo peticion aplicacion Dummy");
 	var frase = req.query.frase || req.body.frase;
     if (frase == 'undefined' || frase == null) {
@@ -215,6 +217,7 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
     response = response + "<tr><td><strong>episode_number</strong></td><td>" + datosClienteAndroid.context.episode_number + "</td></tr>";
     response = response + "<tr><td><strong>season_number</strong></td><td>" + datosClienteAndroid.context.season_number + "</td></tr>";
     response = response + "<tr><td><strong>Lanzar búsqueda WEX</strong></td><td>" + datosClienteAndroid.context.Busqueda_WEX + "</td></tr>";
+    response = response + "<tr><td><strong>Lanzar búsqueda Facetas</strong></td><td>" + datosClienteAndroid.context.Busqueda_opciones + "</td></tr>";
     response = response + "</table>";
     if (datosClienteAndroid.context.Busqueda_WEX) {
 	    response = response + "<P><strong><big><big>Resultados WEX </big></big></strong></P>" + "<table width=800 border=1 cellspacing=0 cellpading=0>";
@@ -225,6 +228,7 @@ function aplicacionDummy(req,res,datosClienteAndroid) {
 	    response = response + "<tr><td><strong>es_numberOfAvailableResults</strong></td><td width=300>" + datosClienteAndroid.es_numberOfAvailableResults + "</td></tr>";
 	    response = response + "<tr><td><strong>es_numberOfEstimatedResults</strong></td><td width=300>" + datosClienteAndroid.es_numberOfEstimatedResults + "</td></tr>";
 	    response = response + "<tr><td><strong>filtros de la query</strong></td><td width=300>" + datosClienteAndroid.es_query[0].searchTerms + "</td></tr>";
+        response = response + "<tr><td><strong>filtros query facetas</strong></td><td width=300>" + datosClienteAndroid.searchFacet + "</td></tr>";
 	    response = response + "<tr><td><strong>orden de la query</strong></td><td width=300>" + datosClienteAndroid.parametrosOrdenacion + "</td></tr>";
 	    var resTitulos=listadoTitulos(datosClienteAndroid.es_result);
 	    response = response + "<tr><td><strong>respuestas devueltas</strong></td><td width=300>" + resTitulos.numElementos + "</td></tr>";    
@@ -416,6 +420,7 @@ function peticionClienteAndroid(req, res) {
             var ultima_temporada = data.context.ultima_temporada;
             var ultimo_capitulo = data.context.ultimo_capitulo;
             var broadcast_language = data.context.broadcast_language;
+            var busqueda_opciones = data.context.Busqueda_opciones;
 
             var stringRemoves = [];
             if(genres !== null && genres !== undefined && genres !== ""){
@@ -435,16 +440,21 @@ function peticionClienteAndroid(req, res) {
                 stringRemoves = stringRemoves.push(decada);
             } else if (ultimo!==null && ultimo !== undefined && ultimo !== ""){
                 var cUltimo = removeAccents(ultimo.toLowerCase()).split(' ');
-                stringRemoves = stringRemoves.push(cUltimo);
+                stringRemoves = stringRemoves.concat(cUltimo);
             } else if (ultimo_capitulo!==null && ultimo_capitulo !== undefined && ultimo_capitulo !== ""){
-                var cUltimoCapitulo = removeAccents(ultimo_capitulo.toLowerCase()).split(' ');
-                stringRemoves = stringRemoves.push(cUltimoCapitulo);
+                var cUltimoCapitulo = removeAccents(ultimo_capitulo.toLowerCase()).split(' ');                
+                stringRemoves = stringRemoves.concat(cUltimoCapitulo);
+                console.log("STRING TO REMOVE", stringRemoves);
             } else if (ultima_temporada!==null && ultima_temporada !== undefined && ultima_temporada !== ""){
                 var cUltimaTemporada = removeAccents(ultima_temporada.toLowerCase()).split(' ');
-                stringRemoves = stringRemoves.push(cUltimaTemporada);
+                stringRemoves = stringRemoves.concat(cUltimaTemporada);
+                console.log("STRING TO REMOVE", stringRemoves);
             } else if (broadcast_language!==null && broadcast_language !==undefined && broadcast_language !== ""){
                 var cBroadcastLanguage = removeAccents(broadcast_language.toLowerCase()).split(' ');
-                stringRemoves = stringRemoves.push(cBroadcastLanguage);
+                console.log(cBroadcastLanguage, broadcast_language, stringRemoves);
+                stringRemoves = stringRemoves.concat(cBroadcastLanguage);
+                console.log("STRING TO REMOVE", stringRemoves);
+                console.log("B.LANGUAGE :: ",broadcast_language);
             }
 
             var orden = "";
@@ -503,7 +513,10 @@ function peticionClienteAndroid(req, res) {
             // FILTRO POR NACIONALIDAD
             if (nacionalidad!==null && nacionalidad !== undefined && nacionalidad !== ""){
                 parametrosBusqueda = agregarParametroBusq(parametrosBusqueda, process.env.NATIONALITY+":", nacionalidad);
-                stringRemoves.push(nacionalidad)
+                //nacionalidad = nacionalidad.toLowerCase();
+                console.log("STRINGS TO REMOVE ", stringRemoves);
+                console.log("NATIONALITY ", nacionalidad);
+                stringRemoves.push(nacionalidad);
             }
 
             // FILTRO PIXAR
@@ -533,6 +546,7 @@ function peticionClienteAndroid(req, res) {
                 parametrosOrdenacion = parametrosOrdenacion + process.env.ORDER_SERIES_NOVEDADES;
             }
 
+            
 
             // BUSQUEDA POR DECADA            
             var queryDecada = ""
@@ -569,22 +583,55 @@ function peticionClienteAndroid(req, res) {
             var palabrasEntrada = [];
             
             if (typeof data.context.input_text == 'string') {
+
+                // CONCATENAMOS A LA FRASE, LA FRASE ANTERIOR PARA NO PERDER CONTEXTO [SE LIMPIA CON NUEVA BUSQUEDA]
+                if (data.context.input_text.toLowerCase() !== entrada.text.toLowerCase()){
+                    data.context.input_text = data.context.input_text + " " + entrada.text;
+                } else if (data.context.input === "") {
+                    data.context.input_text = entrada.text;
+                }
+
                 var inputClean = removeAccents(data.context.input_text.toLowerCase());
             	//palabrasEntrada = limpiarSimbolos(data.context.input_text.toLowerCase()).split(' ');
                 palabrasEntrada = limpiarSimbolos(inputClean).split(' ');
             }
 
+            /*if (data.context.input_text !== null && data.context.input_text !== undefined && data.context.input_text !== ""){
+
+                if (data.context.input_text.toLowerCase() !== entrada.text.toLowerCase()){
+                    data.context.input_text = data.context.input_text + entrada.text;
+                } else if (data.context.input === "") {
+                    data.context.input_text = entrada.text;
+                }
+
+                var inputClean = removeAccents(data.context.input_text.toLowerCase());            	
+                palabrasEntrada = limpiarSimbolos(inputClean).split(' ');
+
+
+            }*/
+
             
             
-            var arrEntrada_filtrado=sw.removeStopwords( palabrasEntrada, sw.es);
+            /*var arrEntrada_filtrado=sw.removeStopwords( palabrasEntrada, sw.es);
             console.log("FILTRADO STOPWORDS :: ", arrEntrada_filtrado);
             if (stringRemoves.length > 0){
                 console.log("STRING TO REMOVE", stringRemoves);
                 arrEntrada_filtrado = clearInputDescription(stringRemoves, arrEntrada_filtrado);
                 console.log("FILTRADO RUIDO AFTER STOPWORDS", arrEntrada_filtrado , " ", stringRemoves);
-            }                       
+            }*/
+
+            if (stringRemoves.length > 0){
+                console.log("STRING TO REMOVE", stringRemoves);
+                palabrasEntrada = clearInputDescription(stringRemoves, palabrasEntrada);
+                console.log("FILTRADO RUIDO AFTER STOPWORDS", palabrasEntrada , " ", stringRemoves);
+            }
+            var arrEntrada_filtrado=sw.removeStopwords( palabrasEntrada, sw.es);
+            console.log("FILTRADO STOPWORDS :: ", arrEntrada_filtrado);
+
+
             var filtroInputEntrada = arrEntrada_filtrado.toString();
-            filtroInputEntrada=filtroInputEntrada.replace(/,/g, ' OR ');
+            //filtroInputEntrada=filtroInputEntrada.replace(/,/g, ' OR ');
+            filtroInputEntrada=filtroInputEntrada.replace(/,/g, ' AND ');
         	if (filtroInputEntrada != null && '' != filtroInputEntrada ) { 
         		parametrosBusqueda = agregarParametroBusq(parametrosBusqueda,"","("+filtroInputEntrada+")");
         	}
@@ -610,7 +657,7 @@ function peticionClienteAndroid(req, res) {
             if (lanzar_busqueda_wex) {
             	console.info("Se realiza la llamada a Wex");
 
-                funciones_wex.request(parametrosBusqueda, parametrosOrdenacion, 1, function (datos) { //Uso de la funcion request construida en wex.js o similar, recibe los datos en callback "datos"
+                funciones_wex.request(parametrosBusqueda, parametrosOrdenacion, 1, false, function (datos) { //Uso de la funcion request construida en wex.js o similar, recibe los datos en callback "datos"
 
                     console.log("Callback llamada wex:");
                     datos.input = entrada.text;
@@ -630,7 +677,8 @@ function peticionClienteAndroid(req, res) {
                     payload.input = entrada2;
                     payload.context = datos.context;
                     
-                    var genresArray = [];
+                    //NO NECESARIO : SE SUSTITUYE POR BUSQUEDA DE FACETAS
+                    /*var genresArray = [];
                     // GENERAMOS UN ARRAY CON LOS GENEROS ENCONTRADOS PARA ENVIAR A CONVERSATION                    
                     if (datos.es_result!==undefined && datos.es_result!==null && datos.es_result.length !== undefined && datos.es_result.length > 1){
 
@@ -645,7 +693,7 @@ function peticionClienteAndroid(req, res) {
                     }
                     if (genresArray.length > 0){
                         datos.context.genresArray = genresArray;
-                    }
+                    }*/
 
 
                     // SI MANEJAMOS CONTENIDO RELATIVO A SERIES, DEVOLVEMOS EL JSON ORDENADO POR TEMPORADA Y CAPÍTULOS
@@ -713,31 +761,59 @@ function peticionClienteAndroid(req, res) {
                                 datos.context.es_totalResults = 1;
                             } else {
                                 datos.es_result = newResult;
-                            }*/
-
-                            
+                            }*/                            
                             
                         }
                     }
 
+                    // BUSQUEDA POR FACETAS
+                    if (busqueda_opciones !== null && busqueda_opciones !== undefined && busqueda_opciones !== "" && busqueda_opciones === true){
+                        if (show_type!==null && show_type!==undefined && show_type!==""){
+                            parametrosBusqueda = agregarKeyword("", "show_type", show_type);
+                        }
+                        
+                        if (genres!==null && genres!==undefined && genres!==""){
+                            parametrosBusqueda = agregarKeyword("", "genres", genres);
+                        }
+                    }
+                    console.log("BUSCAMOS POR FACETAS")
+                    funciones_wex.request(parametrosBusqueda, parametrosOrdenacion, 1, true, function (facetData) {                                                
 
-                    //console.info("Mensaje 2 a conversation:",JSON.stringify(payload));
-                    console.info("Se realiza la segunda llamada a Conversation.");
-                    conversation.message(payload, function (err, data2) {
-                    	console.info("Callback de la segunda llamada a Conversation.");
-                    	//console.log("Segunda llamada a conversation:"+JSON.stringify(data2));
-                    	//console.log("Segunda llamada a conversation:"+JSON.stringify(err));
-                    	//console.log("Se ha llamado al conversation la segunda vez y ha devuelto:"+data2.output.text)
-                    	console.info(JSON.stringify(data2.context));
-                    	datos.context = data2.context;
-                    	datos.output = data2.output.text;      
-                        if (logDDBB) {
-                            // If the logs db is set, then we want to record all input and responses 
-            	            idLog = uuid.v4(); 
-            	            logDDBB.insert( {'user': paramUser, '_id': idLog, 'request': rawInput  + " --> " +entrada, 'response': data, 'time': new Date()}); 
-                        }                  
-                    	devuelveDatos(req,res,datos);
+                        // VERIFICAMOS SI HEMOS RECIBIDO FACETAS EN LA BUSQUEDA
+                        if (facetData!==null && facetData.ibmsc_facet!==null && facetData.ibmsc_facet !== undefined 
+                            && facetData.ibmsc_facet.ibmsc_facetValue!==null && facetData.ibmsc_facet.ibmsc_facetValue !=="" /*&& facetData.ibmsc_facet.ibmsc_facetValue.length > 0*/) {
+                            console.log ("FACET", facetData.ibmsc_facet);
+                            var facetString = createFacetString(facetData.ibmsc_facet.ibmsc_facetValue);
+                            console.log("Facetas encontradas ", facetString);
+                            datos.context.opciones = facetString;
+                            datos.searchFacet = parametrosBusqueda;
+                        } else {
+                            datos.searchFacet = parametrosBusqueda;
+                            datos.context.opciones = "";
+                        }
+
+                        //console.info("Mensaje 2 a conversation:",JSON.stringify(payload));
+                        console.info("Se realiza la segunda llamada a Conversation.");
+                        conversation.message(payload, function (err, data2) {
+                            console.info("Callback de la segunda llamada a Conversation.");
+                            //console.log("Segunda llamada a conversation:"+JSON.stringify(data2));
+                            //console.log("Segunda llamada a conversation:"+JSON.stringify(err));
+                            //console.log("Se ha llamado al conversation la segunda vez y ha devuelto:"+data2.output.text)
+                            console.info(JSON.stringify(data2.context));
+                            datos.context = data2.context;
+                            datos.output = data2.output.text;      
+                            if (logDDBB) {
+                                // If the logs db is set, then we want to record all input and responses 
+                                idLog = uuid.v4(); 
+                                logDDBB.insert( {'user': paramUser, '_id': idLog, 'request': rawInput  + " --> " +entrada, 'response': data, 'time': new Date()}); 
+                            }                  
+                            devuelveDatos(req,res,datos);
+                        });
+
                     });
+
+
+                    
                 });
             }
             else {
@@ -762,6 +838,28 @@ function peticionClienteAndroid(req, res) {
 
 
 };
+
+function createFacetString (facetArray) {
+    var facetString = "";
+    if (facetArray.length === undefined) {
+        console.log("UNICO ", facetArray);
+        facetArray = [facetArray];
+    }
+
+    for (var i = 0; i < facetArray.length ; i++){
+        var item = facetArray[i];
+        if (item.label !== null && item.label !== undefined && item.label !== ""){
+            if (i === 0) {
+                facetString = item.label.toLowerCase();
+            }else if (i!==0 && i === (facetArray.length - 1)) {                
+                facetString = facetString + " o " + item.label.toLowerCase();
+            } else {
+                facetString = facetString + ", " + item.label.toLowerCase();
+            }            
+        }
+    }
+    return facetString;
+}
 
 function searchItemByTag(array, tag){
     
