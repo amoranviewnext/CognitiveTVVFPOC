@@ -160,7 +160,8 @@ function createURL(input_and, input_or) { // creacion de URL para WEX, distingui
 }
 
 function createURLFacets(input) {
-  var facet = '&facet={%22count%22:51,%22depth%22:1,%22namespace%22:%22keyword%22,%22id%22:%22$.genres%22}&output=application/json';
+  //var facet = '&facet={%22count%22:51,%22depth%22:1,%22namespace%22:%22keyword%22,%22id%22:%22$.genres%22}&output=application/json';
+  var facet = '&facet={%22count%22:51,%22depth%22:1,%22namespace%22:%22keyword%22,%22id%22:%22$.show_type%22}&output=application/json';
   var params = 'collection=' + collection + '&query=(*:*) AND ' + input;
   return wexURL + '/api/v10/search/facet' + '?' + encodeURI(params) + facet  ;
 }

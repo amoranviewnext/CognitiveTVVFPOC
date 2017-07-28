@@ -117,7 +117,7 @@ app.get('/paginator', function (req, res) {
 
     console.log("En función paginator");
     // http://localhost:3000/paginator?parametrosBusqueda=show_type:Cine&parametrosOrdenacion=&pagina=2
-    funciones_wex.request(req.query.parametrosBusqueda, req.query.parametrosOrdenacion, req.query.pagina, function (datos) {
+    funciones_wex.request(req.query.parametrosBusqueda, req.query.parametrosOrdenacion, req.query.pagina, false, function (datos) {
 
         console.log("WEX resultados:" + datos.es_totalResults);
 
@@ -129,7 +129,7 @@ app.get('/paginator', function (req, res) {
 app.post('/paginator', function (req, res) {
 
     console.log("En función paginator");
-    funciones_wex.request(req.query.parametrosBusqueda, req.query.parametrosOrdenacion, req.query.pagina, function (datos) {
+    funciones_wex.request(req.query.parametrosBusqueda, req.query.parametrosOrdenacion, req.query.pagina, false, function (datos) {
 
         console.log("WEX resultados:" + datos.es_totalResults);
 
@@ -462,18 +462,25 @@ function peticionClienteAndroid(req, res) {
             if ((novedades == process.env.ULTIMAS_NOVEDADES) && (!(valoracion == process.env.MEJOR_VALORADAS))) {
                 parametrosOrdenacion = parametrosOrdenacion + process.env.ORDER_ULTIMAS_NOVEDADES;
                 orden = "novedades";
+                console.log("NOVEDADES", process.env.ULTIMAS_NOVEDADES);
+                stringRemoves.push(process.env.ULTIMAS_NOVEDADES);
             }
 
             if ((!(novedades == process.env.ULTIMAS_NOVEDADES)) && (valoracion == process.env.MEJOR_VALORADAS)) {
                 parametrosOrdenacion = parametrosOrdenacion + process.env.ORDER_MEJOR_VALORADAS;
                 orden = "valoradas";
+                var cValoradas = removeAccents(valoracion.toLowerCase()).split(' ');
+                console.log("MEJOR VALORADAS", cValoradas);
+                stringRemoves = stringRemoves.concat(cValoradas);
             }
 
             if ((novedades == process.env.ULTIMAS_NOVEDADES) && (valoracion == process.env.MEJOR_VALORADAS)) {
                 //novedades = process.env.ULTIMAS_NOVEDADES_VALUE;
                 parametrosOrdenacion = parametrosOrdenacion + process.env.ORDER_MEJOR_VALORADAS;
                 orden = "valoradas";
-
+                var cValoradas = removeAccents(valoracion.toLowerCase()).split(' ');
+                console.log("MEJOR VALORADAS", cValoradas);
+                stringRemoves = stringRemoves.concat(cValoradas);
             }
 
 
@@ -768,9 +775,10 @@ function peticionClienteAndroid(req, res) {
 
                     // BUSQUEDA POR FACETAS
                     if (busqueda_opciones !== null && busqueda_opciones !== undefined && busqueda_opciones !== "" && busqueda_opciones === true){
-                        if (show_type!==null && show_type!==undefined && show_type!==""){
+                        // DE MOMENTO NO CONTEMPLAMOS EL SHOW TYPE EN LA BUSQUEDA POR FACETAS
+                        /*if (show_type!==null && show_type!==undefined && show_type!==""){
                             parametrosBusqueda = agregarKeyword("", "show_type", show_type);
-                        }
+                        }*/
                         
                         if (genres!==null && genres!==undefined && genres!==""){
                             parametrosBusqueda = agregarKeyword("", "genres", genres);
@@ -841,6 +849,7 @@ function peticionClienteAndroid(req, res) {
 
 function createFacetString (facetArray) {
     var facetString = "";
+    var clearFaceArray = [];
     if (facetArray.length === undefined) {
         console.log("UNICO ", facetArray);
         facetArray = [facetArray];
@@ -848,10 +857,18 @@ function createFacetString (facetArray) {
 
     for (var i = 0; i < facetArray.length ; i++){
         var item = facetArray[i];
+        if (item.label !== null && item.label !== undefined && item.label !== "" && item.label.toLowerCase() !== "master"){
+            clearFaceArray.push(item);
+        }
+    }
+
+    for (var i = 0; i < clearFaceArray.length ; i++){
+        var item = clearFaceArray[i];
+        console.log("item facet", i, item.label);
         if (item.label !== null && item.label !== undefined && item.label !== ""){
             if (i === 0) {
                 facetString = item.label.toLowerCase();
-            }else if (i!==0 && i === (facetArray.length - 1)) {                
+            }else if (i!==0 && i === (clearFaceArray.length - 1)) {                
                 facetString = facetString + " o " + item.label.toLowerCase();
             } else {
                 facetString = facetString + ", " + item.label.toLowerCase();
